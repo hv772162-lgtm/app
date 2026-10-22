@@ -1,0 +1,328 @@
+<!DOCTYPE html>  
+<html lang="vi">  
+<head>  
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#46486b">
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">  
+<meta name="theme-color" content="#46486b"> 
+<title>员工码 - Employee QR Pass</title>  
+<style>  
+    /*  
+      Mọi kích thước dùng rem. 1rem = 10 "đơn vị" trên màn hình rộng 390px,  
+      nên giao diện co giãn đúng tỉ lệ trên mọi dòng iPhone / Android.  
+    */  
+    html {  
+        font-size: calc(min(100vw, 430px) / 39);  
+        -webkit-text-size-adjust: 100%;  
+        text-size-adjust: 100%;  
+    }  
+
+    * {  
+        box-sizing: border-box;  
+        margin: 0;  
+        padding: 0;  
+        -webkit-user-select: none;  
+        user-select: none;  
+        -webkit-touch-callout: none;  
+        -webkit-tap-highlight-color: transparent;  
+    }  
+
+    html, body {  
+        width: 100%;  
+        height: 100%;  
+        overflow: hidden;  
+        overscroll-behavior: none; /* Khoá hoàn toàn hiệu ứng kéo nảy */  
+    }  
+
+    body {  
+        position: fixed;  
+        top: 0;  
+        left: 0;  
+        background: linear-gradient(180deg, #46486b 0%, #3c3e5d 38%, #2f3152 72%, #282a47 100%);  
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Helvetica Neue",  
+                     "Segoe UI", Roboto, "Noto Sans SC", "Microsoft YaHei", sans-serif;  
+        touch-action: none; /* Khoá toàn bộ cử chỉ vuốt chạm mặc định của trình duyệt */  
+    }  
+
+    /* Lớp nền sử dụng hình 7497.png làm ảnh nền CSS phủ kín màn hình */  
+    .bg-art {  
+        position: absolute;  
+        top: 0;  
+        left: 0;  
+        width: 100%;  
+        height: 100%;  
+        z-index: 0;  
+        pointer-events: none;  
+        background-image: url('7497.png');  
+        background-size: cover;  
+        background-position: center;  
+        background-repeat: no-repeat;  
+    }  
+
+    .app {  
+        position: relative;  
+        z-index: 1;  
+        width: 39rem;  
+        margin: 0 auto;  
+        padding-top: calc(2.8rem + env(safe-area-inset-top, 0px));  
+    }  
+
+    /* Tiêu đề: mã nhân viên + tên (màu kem vàng) - Vùng bấm để reset thời gian & 3 lần để thoát */  
+    .header-title {  
+        height: 2.4rem;  
+        margin-bottom: 1.9rem;  
+        padding: 0 0.2rem;  
+        font-size: 1.72rem;  
+        line-height: 2.4rem;  
+        font-weight: 400;  
+        color: #f6e6bd;  
+        text-align: center;  
+        white-space: nowrap;  
+        overflow: hidden;  
+        text-overflow: ellipsis;  
+        cursor: pointer;  
+    }  
+
+    /* Thẻ QR: banner vàng + thân trắng, có hai vết khuyết tròn ở mép tại ranh giới */  
+    .qr-card {  
+        width: 30.2rem;  
+        margin: 0 auto;  
+        background: #ffffff;  
+        border-radius: 0.4rem;  
+        overflow: hidden;  
+        -webkit-mask:  
+            radial-gradient(circle at 0 6.4rem, transparent 0.55rem, #000 0.6rem),  
+            radial-gradient(circle at 100% 6.4rem, transparent 0.55rem, #000 0.6rem);  
+        -webkit-mask-composite: source-in;  
+        mask:  
+            radial-gradient(circle at 0 6.4rem, transparent 0.55rem, #000 0.6rem),  
+            radial-gradient(circle at 100% 6.4rem, transparent 0.55rem, #000 0.6rem);  
+        mask-composite: intersect;  
+    }  
+
+    .card-banner {  
+        height: 6.4rem;  
+        line-height: 6.4rem;  
+        background: #e9ba45;  
+        color: #fdf3d6;  
+        font-size: 1.35rem;  
+        font-weight: 500;  
+        text-align: center;  
+        white-space: nowrap;  
+    }  
+
+    .card-body {  
+        padding: 1.4rem 0 0.9rem;  
+        text-align: center;  
+        background: #ffffff;  
+    }  
+
+    .timestamp {  
+        height: 2rem;  
+        margin-bottom: 0.5rem;  
+        font-size: 1.4rem;  
+        line-height: 2rem;  
+        font-weight: 600;  
+        color: #111111;  
+        font-variant-numeric: tabular-nums;  
+        white-space: nowrap;  
+    }  
+
+    .qr-code-box {  
+        width: 21.1rem;  
+        height: 21.1rem;  
+        margin: 0 auto;  
+        transition: opacity 0.2s ease;  
+    }  
+
+    .qr-code-box img {  
+        display: block;  
+        width: 100%;  
+        height: 100%;  
+        object-fit: contain;  
+    }  
+
+    .refresh-text {  
+        margin-top: 0.9rem;  
+        height: 1.6rem;  
+        font-size: 1.15rem;  
+        line-height: 1.6rem;  
+        font-weight: 500;  
+        color: #6b6b6b;  
+        cursor: pointer;  
+    }  
+
+    .timer-display {  
+        margin-top: 3.6rem;  
+        font-size: 1.54rem;  
+        line-height: 2.2rem;  
+        font-weight: 600;  
+        color: #1fc84a;  
+        font-variant-numeric: tabular-nums;  
+    }  
+
+    /* Dòng thông báo cuối trang: 3 dòng, hai dòng đầu căn đều hai bên, dòng đầu thụt 2 chữ */  
+    .security-footer {  
+        width: 30.2rem;  
+        margin: 2.8rem auto 0;  
+        font-size: 1.28rem;  
+        line-height: 2rem;  
+        color: #f1dba4;  
+    }  
+
+    .security-footer p {  
+        text-align: justify;  
+        text-align-last: justify;  
+    }  
+
+    .security-footer .indent { text-indent: 2em; }  
+    .security-footer .last   { text-align-last: left; }
+</style>  
+</head>  
+<body>  
+
+<!-- Phần tử chứa ảnh nền 7497.png -->  
+<div class="bg-art" aria-hidden="true"></div>  
+
+<main class="app">  
+    <!-- Mã nhân viên + tên: Khu vực bấm để reset thời gian và chạm 3 lần để thoát ứng dụng -->  
+    <h1 class="header-title" id="empTitle">V25080027(Vũ Văn Hải)</h1>  
+
+    <section class="qr-card">  
+        <div class="card-banner">将二维码对准扫描器刷码出场</div>  
+
+        <div class="card-body">  
+            <div class="timestamp" id="liveTimestamp">2026-10-13  18:50:45</div>  
+
+            <div class="qr-code-box" id="qrBox">  
+                < img id="qrImg" src="qr1.png" alt="Employee QR Code">  
+            </div>  
+
+            <div class="refresh-text" id="refreshBtn">刷新二维码</div>  
+
+            <!-- Vùng hiển thị đồng hồ đếm lên -->  
+            <div class="timer-display" id="countUpTimer">00:00:00</div>  
+        </div>  
+    </section>  
+
+    <div class="security-footer">  
+        <p class="indent">尊敬的员工您好，您已进入企业涉密区域，出</p >  
+        <p>于企业安全考虑，您的手机摄像头将被禁止拍摄，感</p >  
+        <p class="last">谢您的配合。</p >  
+    </div>  
+</main>  
+
+<script>  
+    const pad = (n) => String(n).padStart(2, "0");  
+
+    /* ---------- Quản lý danh sách hình QR: qr1.png, qr2.png, qr3.png, qr4.png ---------- */  
+    const qrImages = ["qr1.png", "qr2.png", "qr3.png", "qr4.png"];  
+    let currentQRIndex = 0;  
+
+    function renderQR() {  
+        currentQRIndex = (currentQRIndex + 1) % qrImages.length;  
+        document.getElementById("qrImg").src = qrImages[currentQRIndex];  
+    }  
+
+    /* ---------- Đồng hồ đếm lên duy trì khi đóng app (localStorage) ---------- */  
+    const timerEl = document.getElementById("countUpTimer");  
+
+    let startTime = localStorage.getItem("emp_timer_start");  
+    if (!startTime) {  
+        startTime = Date.now();  
+        localStorage.setItem("emp_timer_start", startTime);  
+    } else {  
+        startTime = Number(startTime);  
+    }  
+
+    function updateTimer() {  
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000) % 86400;  
+        const h = Math.floor(elapsedSeconds / 3600);  
+        const mi = Math.floor((elapsedSeconds % 3600) / 60);  
+        const s = elapsedSeconds % 60;  
+        timerEl.textContent = pad(h) + ":" + pad(mi) + ":" + pad(s);  
+    }  
+
+    updateTimer();  
+    setInterval(updateTimer, 1000);  
+
+    /* ---------- Ngày giờ thực phía trên mã QR ---------- */  
+    const tsEl = document.getElementById("liveTimestamp");  
+
+    function updateLiveDateTime() {  
+        const n = new Date();  
+        tsEl.textContent =  
+            `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}\u00A0\u00A0` +  
+            `${pad(n.getHours())}:${pad(n.getMinutes())}:${pad(n.getSeconds())}`;  
+    }  
+    setInterval(updateLiveDateTime, 1000);  
+    updateLiveDateTime();  
+
+    /* ---------- Bấm "刷新二维码" ---------- */  
+    function refreshQR() {  
+        const box = document.getElementById("qrBox");  
+        box.style.opacity = "0.3";  
+        setTimeout(() => {  
+            renderQR();  
+            box.style.opacity = "1";  
+            updateLiveDateTime();  
+        }, 200);  
+    }  
+    document.getElementById("refreshBtn").addEventListener("click", refreshQR);  
+    
+    // Khởi tạo ảnh đầu tiên  
+    document.getElementById("qrImg").src = qrImages[currentQRIndex];  
+
+    /* ---------- Bấm vào mã nhân viên để reset thời gian & 3 lần liên tiếp để thoát ứng dụng ---------- */  
+    let tapCount = 0;  
+    let lastTapTime = 0;  
+
+    document.getElementById("empTitle").addEventListener("click", (e) => {  
+        startTime = Date.now();  
+        localStorage.setItem("emp_timer_start", startTime);  
+        updateTimer();  
+
+        const now = Date.now();  
+        if (now - lastTapTime < 500) {  
+            tapCount++;  
+        } else {  
+            tapCount = 1;  
+        }  
+        lastTapTime = now;  
+
+        if (tapCount === 3) {  
+            tapCount = 0;  
+            if (confirm("Xác nhận thoát ứng dụng?")) {  
+                window.close();  
+                setTimeout(() => {  
+                    window.location.href = "about:blank";  
+                }, 100);  
+            }  
+        }  
+    });  
+
+    // Ngăn chặn hoàn toàn các cử chỉ kéo trượt / pinch zoom / hành vi vuốt mặc định  
+    document.addEventListener("gesturestart", (e) => e.preventDefault());  
+    document.addEventListener("touchmove", (e) => {  
+        e.preventDefault();  
+    }, { passive: false });  
+
+    let lastTouchEnd = 0;  
+    document.addEventListener("touchend", (e) => {  
+        const now = Date.now();  
+        if (now - lastTouchEnd <= 300) e.preventDefault();  
+        lastTouchEnd = now;  
+    }, false);  
+
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+            navigator.serviceWorker.register("./sw.js")
+              .catch(console.error);
+        });
+    }
+</script>
+
+</body>  
+</html>  
